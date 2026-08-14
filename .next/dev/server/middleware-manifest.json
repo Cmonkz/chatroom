@@ -3,17 +3,19 @@
   "middleware": {
     "/": {
       "files": [
-        "server/edge/chunks/node_modules_next_dist_13hx4g0._.js",
+        "server/edge/chunks/node_modules_next_dist_1ye9cwm._.js",
+        "server/edge/chunks/node_modules_@supabase_auth-js_dist_module_0focj3n._.js",
+        "server/edge/chunks/node_modules_15bcvgq._.js",
         "server/edge/chunks/[root-of-the-server]__13jvavz._.js",
-        "server/edge/chunks/turbopack-node_modules_next_dist_esm_build_templates_edge-wrapper_1gte0x3.js"
+        "server/edge/chunks/turbopack-node_modules_next_dist_esm_build_templates_edge-wrapper_00ns31x.js"
       ],
       "name": "middleware",
       "page": "/",
-      "entrypoint": "server/edge/chunks/turbopack-node_modules_next_dist_esm_build_templates_edge-wrapper_1gte0x3.js",
+      "entrypoint": "server/edge/chunks/turbopack-node_modules_next_dist_esm_build_templates_edge-wrapper_00ns31x.js",
       "matchers": [
         {
-          "regexp": "^/.*$",
-          "originalSource": "/:path*"
+          "regexp": "^(?:\\/(_next\\/data\\/[^/]{1,}))?(?:\\/((?!_next\\/static|_next\\/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*))(\\.json|\\.rsc|\\.segments\\/.+\\.segment\\.rsc)?[\\/#\\?]?$",
+          "originalSource": "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"
         }
       ],
       "wasm": [],
@@ -21,9 +23,9 @@
       "env": {
         "__NEXT_BUILD_ID": "development",
         "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY": "MkqA8txIyAf1Zo1JHMPvvI01l/72f4EZDmZzEu2/SIM=",
-        "__NEXT_PREVIEW_MODE_ID": "455ec5bc7f12d1d4f97c2a3f99080f24",
-        "__NEXT_PREVIEW_MODE_ENCRYPTION_KEY": "df957d8c1e333ccb86034e7e39c8eae33afd57e5e65c61dec401c5cf903a0c71",
-        "__NEXT_PREVIEW_MODE_SIGNING_KEY": "a5f13df1ef93b4b3825643eebefe293d2180a33a4c7a871f1b39009f91c1af44"
+        "__NEXT_PREVIEW_MODE_ID": "d5f3369254840ab6755dea8c46e78bca",
+        "__NEXT_PREVIEW_MODE_ENCRYPTION_KEY": "22e92be919dfeeea3c3099eb4b0903628fd1e67986770009cd0cda15d05f0d97",
+        "__NEXT_PREVIEW_MODE_SIGNING_KEY": "a4490d02873d04f675e0acd5fb307566731e07d3a0c900bf28abaee3d0259478"
       }
     }
   },
