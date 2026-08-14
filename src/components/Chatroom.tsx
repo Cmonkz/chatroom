@@ -25,7 +25,7 @@ export default function ChatRoom() {
       const { data } = await supabase
         .from('messages')
         .select('*')
-        .order('created_at', { ascending: true })
+        .order('created_at', { ascending: false })
         .limit(100)
 
       if (data) setMessages(data)
@@ -103,11 +103,14 @@ export default function ChatRoom() {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.map((msg) => (
-          <div key={msg.id} className="bg-gray-100 rounded-lg p-3">
-            <div className="font-semibold text-sm text-blue-600">{msg.username}</div>
-            <div>{msg.content}</div>
-            <div className="text-xs text-gray-500 mt-1">
-              {new Date(msg.created_at).toLocaleTimeString()}
+          
+          <div key={msg.id}>
+            <div className="font-semibold text-xs text-blue-600">{msg.username}</div>
+            <div className="bg-gray-100 rounded-lg p-3">
+              <div className='text-gray-500'>{msg.content}</div>
+              <div className="text-xs text-gray-500 mt-1">
+                {new Date(msg.created_at).toLocaleTimeString()}
+              </div>
             </div>
           </div>
         ))}

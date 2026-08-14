@@ -151,6 +151,7 @@
     --color-blue-600: #155dfc;
     --color-gray-100: #f3f4f6;
     --color-gray-500: #6a7282;
+    --color-black: #000;
     --color-white: #fff;
     --spacing: .25rem;
     --container-2xl: 42rem;
@@ -556,6 +557,10 @@
   .font-semibold {
     --tw-font-weight: var(--font-weight-semibold);
     font-weight: var(--font-weight-semibold);
+  }
+
+  .text-black {
+    color: var(--color-black);
   }
 
   .text-blue-600 {
