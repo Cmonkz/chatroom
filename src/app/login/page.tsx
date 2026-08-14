@@ -48,7 +48,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h1 className="text-2xl font-bold mb-6 text-center">
+        <h1 className="text-2xl font-bold mb-6 text-center text-gray-500">
           {isSignUp ? 'Create Account' : 'Log In'}
         </h1>
 
@@ -60,7 +60,7 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full p-2 border rounded"
+              className="w-full p-2 border rounded text-gray-500"
               placeholder="you@example.com"
             />
           </div>
@@ -73,7 +73,7 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
-              className="w-full p-2 border rounded"
+              className="w-full p-2 border rounded text-gray-500"
               placeholder="••••••••"
             />
           </div>
@@ -91,7 +91,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="mt-4 text-center text-sm">
+        <p className="mt-4 text-center text-sm text-gray-500">
           {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
           <button
             onClick={() => {

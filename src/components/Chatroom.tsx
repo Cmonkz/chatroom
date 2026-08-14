@@ -16,14 +16,16 @@ export default function ChatRoom({ user }: { user: User }) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(true)
+  const [isEditingNickname, setIsEditingNickname] = useState(false)
+  const [nickname, setNickname] = useState(
+    user.user_metadata?.nickname || user.email?.split('@')[0] || 'User'
+  )
+  const [tempNickname, setTempNickname] = useState(nickname)
+
   const bottomRef = useRef<HTMLDivElement>(null)
   const supabase = createClient()
   const router = useRouter()
 
-  // Get display name from the logged-in user
-  const displayName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'
-
-  // Load messages + subscribe
   useEffect(() => {
     const loadMessages = async () => {
       const { data } = await supabase
@@ -62,12 +64,27 @@ export default function ChatRoom({ user }: { user: User }) {
     }
   }, [])
 
-  // Auto scroll
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // Send message
+  const saveNickname = async () => {
+    const newNickname = tempNickname.trim()
+    if (!newNickname) return
+
+    const { error } = await supabase.auth.updateUser({
+      data: { nickname: newNickname },
+    })
+
+    if (error) {
+      alert('Failed to update nickname')
+      return
+    }
+
+    setNickname(newNickname)
+    setIsEditingNickname(false)
+  }
+
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!input.trim()) return
@@ -77,7 +94,7 @@ export default function ChatRoom({ user }: { user: User }) {
 
     const { error } = await supabase.from('messages').insert({
       content,
-      username: displayName,
+      username: nickname,
       user_id: user.id,
     })
 
@@ -87,7 +104,6 @@ export default function ChatRoom({ user }: { user: User }) {
     }
   }
 
-  // Logout
   const handleLogout = async () => {
     await supabase.auth.signOut()
     router.push('/login')
@@ -96,68 +112,126 @@ export default function ChatRoom({ user }: { user: User }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        Loading chat...
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <p className="text-gray-500">Loading chat...</p>
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col h-screen max-w-2xl mx-auto">
+    <div className="flex flex-col h-screen bg-gray-100">
       {/* Header */}
-      <div className="p-4 border-b flex justify-between items-center bg-white">
-        <h1 className="font-bold text-lg">Chat Room</h1>
+      <header className="bg-white border-b px-4 py-3 flex items-center justify-between shadow-sm">
+        <h1 className="font-semibold text-lg text-gray-800">Tabi</h1>
+
         <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-600">{displayName}</span>
+          {isEditingNickname ? (
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={tempNickname}
+                onChange={(e) => setTempNickname(e.target.value)}
+                className="border rounded-md px-2 py-1 text-sm w-36 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                maxLength={20}
+                autoFocus
+              />
+              <button
+                onClick={saveNickname}
+                className="text-sm text-green-600 font-medium hover:underline"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => {
+                  setIsEditingNickname(false)
+                  setTempNickname(nickname)
+                }}
+                className="text-sm text-gray-500 hover:underline"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-medium text-gray-700">{nickname}</span>
+              <button
+                onClick={() => setIsEditingNickname(true)}
+                className="text-gray-400 hover:text-blue-600 transition"
+                title="Edit nickname"
+              >
+                ✎
+              </button>
+            </div>
+          )}
+
           <button
             onClick={handleLogout}
-            className="text-sm text-red-600 hover:underline"
+            className="text-sm text-red-500 hover:text-red-600 font-medium"
           >
             Logout
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto">
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`rounded-lg p-3 max-w-[80%] ${
-              msg.username === displayName
-                ? 'bg-blue-500 text-white ml-auto'
-                : 'bg-white border'
-            }`}
-          >
-            <div className="font-semibold text-sm mb-1 opacity-80">{msg.username}</div>
-            <div className="p-4 space-y-3 bg-gray-50">
-              <div className="text-gray-500">{msg.content}</div>
-              <div className="text-xs mt-1 opacity-70">
-                {new Date(msg.created_at).toLocaleTimeString()}
+      {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+        {messages.map((msg) => {
+          const isMe = msg.username === nickname
+
+          return (
+            <div
+              key={msg.id}
+              className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
+            >
+              <div
+                className={`max-w-[75%] rounded-2xl px-4 py-2.5 shadow-sm ${
+                  isMe
+                    ? 'bg-blue-600 text-white rounded-br-md'
+                    : 'bg-white text-gray-800 rounded-bl-md'
+                }`}
+              >
+                {!isMe && (
+                  <p className="text-xs font-semibold mb-1 opacity-70">
+                    {msg.username}
+                  </p>
+                )}
+                <p className="text-sm leading-relaxed">{msg.content}</p>
+                <p
+                  className={`text-[11px] mt-1 ${
+                    isMe ? 'text-blue-100' : 'text-gray-400'
+                  }`}
+                >
+                  {new Date(msg.created_at).toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </p>
               </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
-      <form onSubmit={sendMessage} className="p-4 border-t bg-white flex gap-2">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Type a message..."
-          className="flex-1 p-2 border rounded"
-        />
-        <button
-          type="submit"
-          disabled={!input.trim()}
-          className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
-        >
-          Send
-        </button>
-      </form>
+      {/* Input Area */}
+      <div className="bg-white border-t px-4 py-3">
+        <form onSubmit={sendMessage} className="flex items-center gap-2">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Type a message..."
+            className="flex-1 border border-gray-300 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+          <button
+            type="submit"
+            disabled={!input.trim()}
+            className="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-5 py-2.5 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition"
+          >
+            Send
+          </button>
+        </form>
+      </div>
     </div>
   )
 }
