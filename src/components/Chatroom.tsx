@@ -9,6 +9,7 @@ type Message = {
   id: string
   content: string
   username: string
+  user_id: string | null
   created_at: string
 }
 
@@ -95,7 +96,7 @@ export default function ChatRoom({ user }: { user: User }) {
     const { error } = await supabase.from('messages').insert({
       content,
       username: nickname,
-      user_id: user.id,
+      user_id: user.id, // important
     })
 
     if (error) {
@@ -112,17 +113,17 @@ export default function ChatRoom({ user }: { user: User }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="h-full flex items-center justify-center bg-white">
         <p className="text-gray-500">Loading chat...</p>
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-100">
+    <div className="flex flex-col h-full bg-white">
       {/* Header */}
-      <header className="bg-white border-b px-4 py-3 flex items-center justify-between shadow-sm">
-        <h1 className="font-semibold text-lg text-gray-800">Tabi</h1>
+      <header className="bg-white border-b px-4 py-3 flex items-center justify-between">
+        <h1 className="font-semibold text-lg text-gray-800">Chat Room</h1>
 
         <div className="flex items-center gap-3">
           {isEditingNickname ? (
@@ -131,7 +132,7 @@ export default function ChatRoom({ user }: { user: User }) {
                 type="text"
                 value={tempNickname}
                 onChange={(e) => setTempNickname(e.target.value)}
-                className="border rounded-md px-2 py-1 text-sm w-36 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="border rounded-md px-2 py-1 text-sm w-32 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 maxLength={20}
                 autoFocus
               />
@@ -173,10 +174,10 @@ export default function ChatRoom({ user }: { user: User }) {
         </div>
       </header>
 
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-gray-50">
         {messages.map((msg) => {
-          const isMe = msg.username === nickname
+          const isMe = msg.user_id === user.id // ✅ fixed: use user_id instead of nickname
 
           return (
             <div
@@ -213,7 +214,7 @@ export default function ChatRoom({ user }: { user: User }) {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input Area */}
+      {/* Input */}
       <div className="bg-white border-t px-4 py-3">
         <form onSubmit={sendMessage} className="flex items-center gap-2">
           <input
