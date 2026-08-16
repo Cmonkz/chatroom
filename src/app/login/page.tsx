@@ -1,108 +1,90 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import ChatRoom from '@/components/Chatroom'
+import Feed from '@/components/Feed'
+import type { User } from '@supabase/supabase-js'
 
-export default function LoginPage() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [isSignUp, setIsSignUp] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState('')
+export default function Home() {
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<'feed' | 'chat'>('feed')
   const router = useRouter()
   const supabase = createClient()
 
-  const handleAuth = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setMessage('')
-
-    if (isSignUp) {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-      })
-      if (error) {
-        setMessage(error.message)
-      } else {
-        setMessage('Account created! You can now log in.')
-        setIsSignUp(false)
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/login')
+        return
       }
-    } else {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-      if (error) {
-        setMessage(error.message)
-      } else {
-        router.push('/')
-        router.refresh()
-      }
+      setUser(user)
+      setLoading(false)
     }
 
-    setLoading(false)
+    getUser()
+  }, [])
+
+  if (loading || !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <p className="text-gray-500">Loading...</p>
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h1 className="text-2xl font-bold mb-6 text-center text-gray-500">
-          {isSignUp ? 'Create Account' : 'Log In'}
-        </h1>
+    <div className="flex flex-col h-screen bg-gray-100 overflow-hidden">
+      {/* Mobile Tab Buttons */}
+      <div className="flex md:hidden bg-white border-b">
+        <button
+          onClick={() => setActiveTab('feed')}
+          className={`flex-1 py-3 text-sm font-medium transition ${
+            activeTab === 'feed'
+              ? 'text-blue-600 border-b-2 border-blue-600'
+              : 'text-gray-500'
+          }`}
+        >
+          Feed
+        </button>
+        <button
+          onClick={() => setActiveTab('chat')}
+          className={`flex-1 py-3 text-sm font-medium transition ${
+            activeTab === 'chat'
+              ? 'text-blue-600 border-b-2 border-blue-600'
+              : 'text-gray-500'
+          }`}
+        >
+          Chat
+        </button>
+      </div>
 
-        <form onSubmit={handleAuth} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full p-2 border rounded text-gray-500"
-              placeholder="you@example.com"
-            />
+      {/* Main Content */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Feed - Hidden on mobile unless active */}
+        <div
+          className={`
+            w-full md:w-5/12 lg:w-4/12 border-r bg-white overflow-y-auto
+            ${activeTab === 'feed' ? 'block' : 'hidden'} md:block
+          `}
+        >
+          <Feed user={user} />
+        </div>
+
+        {/* Chat - Hidden on mobile unless active */}
+        <div
+          className={`
+            flex-1 flex justify-center items-stretch md:items-end p-0 md:p-4 bg-gray-100
+            ${activeTab === 'chat' ? 'flex' : 'hidden'} md:flex
+          `}
+        >
+          <div className="w-full h-full md:max-w-md md:h-[85vh] md:shadow-xl md:rounded-2xl overflow-hidden">
+            <ChatRoom user={user} />
           </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={6}
-              className="w-full p-2 border rounded text-gray-500"
-              placeholder="••••••••"
-            />
-          </div>
-
-          {message && (
-            <p className="text-sm text-red-600">{message}</p>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-          >
-            {loading ? 'Loading...' : isSignUp ? 'Sign Up' : 'Log In'}
-          </button>
-        </form>
-
-        <p className="mt-4 text-center text-sm text-gray-500">
-          {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
-          <button
-            onClick={() => {
-              setIsSignUp(!isSignUp)
-              setMessage('')
-            }}
-            className="text-blue-600 hover:underline"
-          >
-            {isSignUp ? 'Log In' : 'Sign Up'}
-          </button>
-        </p>
+        </div>
       </div>
     </div>
   )
