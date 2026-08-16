@@ -18,6 +18,7 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navi
 function LoginPage() {
     const [email, setEmail] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])('');
     const [password, setPassword] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])('');
+    const [confirmPassword, setConfirmPassword] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])('');
     const [isSignUp, setIsSignUp] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])(false);
     const [loading, setLoading] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])(false);
     const [message, setMessage] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])('');
@@ -27,30 +28,37 @@ function LoginPage() {
         e.preventDefault();
         setLoading(true);
         setMessage('');
-        if (isSignUp) {
-            const { error } = await supabase.auth.signUp({
-                email,
-                password
-            });
-            if (error) {
-                setMessage(error.message);
-            } else {
+        // Check confirm password only when signing up
+        if (isSignUp && password !== confirmPassword) {
+            setMessage('Passwords do not match');
+            setLoading(false);
+            return;
+        }
+        try {
+            if (isSignUp) {
+                const { error } = await supabase.auth.signUp({
+                    email,
+                    password
+                });
+                if (error) throw error;
                 setMessage('Account created! You can now log in.');
                 setIsSignUp(false);
-            }
-        } else {
-            const { error } = await supabase.auth.signInWithPassword({
-                email,
-                password
-            });
-            if (error) {
-                setMessage(error.message);
+                setPassword('');
+                setConfirmPassword('');
             } else {
+                const { error } = await supabase.auth.signInWithPassword({
+                    email,
+                    password
+                });
+                if (error) throw error;
                 router.push('/');
                 router.refresh();
             }
+        } catch (error) {
+            setMessage(error.message);
+        } finally{
+            setLoading(false);
         }
-        setLoading(false);
     };
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
         className: "min-h-screen flex items-center justify-center bg-gray-100",
@@ -58,16 +66,16 @@ function LoginPage() {
             className: "bg-white p-8 rounded-lg shadow-md w-full max-w-md",
             children: [
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h1", {
-                    className: "text-2xl font-bold mb-6 text-center text-gray-500",
+                    className: "text-2xl font-bold text-gray-500 mb-6 text-center",
                     children: isSignUp ? 'Create Account' : 'Log In'
                 }, void 0, false, {
                     fileName: "[project]/src/app/login/page.tsx",
-                    lineNumber: 51,
+                    lineNumber: 59,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("form", {
                     onSubmit: handleAuth,
-                    className: "space-y-4",
+                    className: "space-y-4 text-gray-400",
                     children: [
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                             children: [
@@ -76,7 +84,7 @@ function LoginPage() {
                                     children: "Email"
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/login/page.tsx",
-                                    lineNumber: 57,
+                                    lineNumber: 65,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -84,17 +92,17 @@ function LoginPage() {
                                     value: email,
                                     onChange: (e)=>setEmail(e.target.value),
                                     required: true,
-                                    className: "w-full p-2 border rounded text-gray-500",
+                                    className: "w-full p-2 border rounded",
                                     placeholder: "you@example.com"
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/login/page.tsx",
-                                    lineNumber: 58,
+                                    lineNumber: 66,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/app/login/page.tsx",
-                            lineNumber: 56,
+                            lineNumber: 64,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -104,7 +112,7 @@ function LoginPage() {
                                     children: "Password"
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/login/page.tsx",
-                                    lineNumber: 69,
+                                    lineNumber: 77,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -113,25 +121,54 @@ function LoginPage() {
                                     onChange: (e)=>setPassword(e.target.value),
                                     required: true,
                                     minLength: 6,
-                                    className: "w-full p-2 border rounded text-gray-500",
+                                    className: "w-full p-2 border rounded",
                                     placeholder: "••••••••"
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/login/page.tsx",
-                                    lineNumber: 70,
+                                    lineNumber: 78,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/app/login/page.tsx",
-                            lineNumber: 68,
+                            lineNumber: 76,
                             columnNumber: 11
                         }, this),
+                        isSignUp && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                            children: [
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                    className: "block text-sm font-medium mb-1",
+                                    children: "Confirm Password"
+                                }, void 0, false, {
+                                    fileName: "[project]/src/app/login/page.tsx",
+                                    lineNumber: 92,
+                                    columnNumber: 15
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                    type: "password",
+                                    value: confirmPassword,
+                                    onChange: (e)=>setConfirmPassword(e.target.value),
+                                    required: true,
+                                    minLength: 6,
+                                    className: "w-full p-2 border rounded",
+                                    placeholder: "••••••••"
+                                }, void 0, false, {
+                                    fileName: "[project]/src/app/login/page.tsx",
+                                    lineNumber: 93,
+                                    columnNumber: 15
+                                }, this)
+                            ]
+                        }, void 0, true, {
+                            fileName: "[project]/src/app/login/page.tsx",
+                            lineNumber: 91,
+                            columnNumber: 13
+                        }, this),
                         message && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                            className: "text-sm text-red-600",
+                            className: `text-sm ${message.includes('created') ? 'text-green-600' : 'text-red-600'}`,
                             children: message
                         }, void 0, false, {
                             fileName: "[project]/src/app/login/page.tsx",
-                            lineNumber: 82,
+                            lineNumber: 106,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -141,47 +178,49 @@ function LoginPage() {
                             children: loading ? 'Loading...' : isSignUp ? 'Sign Up' : 'Log In'
                         }, void 0, false, {
                             fileName: "[project]/src/app/login/page.tsx",
-                            lineNumber: 85,
+                            lineNumber: 111,
                             columnNumber: 11
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/src/app/login/page.tsx",
-                    lineNumber: 55,
+                    lineNumber: 63,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                    className: "mt-4 text-center text-sm text-gray-500",
+                    className: "mt-4 text-center text-gray-500 text-sm",
                     children: [
                         isSignUp ? 'Already have an account?' : "Don't have an account?",
                         ' ',
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                            type: "button",
                             onClick: ()=>{
                                 setIsSignUp(!isSignUp);
                                 setMessage('');
+                                setConfirmPassword('');
                             },
                             className: "text-blue-600 hover:underline",
                             children: isSignUp ? 'Log In' : 'Sign Up'
                         }, void 0, false, {
                             fileName: "[project]/src/app/login/page.tsx",
-                            lineNumber: 96,
+                            lineNumber: 122,
                             columnNumber: 11
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/src/app/login/page.tsx",
-                    lineNumber: 94,
+                    lineNumber: 120,
                     columnNumber: 9
                 }, this)
             ]
         }, void 0, true, {
             fileName: "[project]/src/app/login/page.tsx",
-            lineNumber: 50,
+            lineNumber: 58,
             columnNumber: 7
         }, this)
     }, void 0, false, {
         fileName: "[project]/src/app/login/page.tsx",
-        lineNumber: 49,
+        lineNumber: 57,
         columnNumber: 5
     }, this);
 }

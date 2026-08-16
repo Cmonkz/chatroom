@@ -123,7 +123,12 @@ export default function ChatRoom({ user }: { user: User }) {
     <div className="flex flex-col h-full bg-white">
       {/* Header */}
       <header className="bg-white border-b px-4 py-3 flex items-center justify-between">
-        <h1 className="font-semibold text-lg text-gray-800">Chat Room</h1>
+        <button
+            onClick={handleLogout}
+            className="text-sm text-red-500 hover:text-red-600 font-medium">
+            Logout
+          </button>
+        <h1 className="font-semibold text-lg text-gray-800">Lego</h1>
 
         <div className="flex items-center gap-3">
           {isEditingNickname ? (
@@ -164,13 +169,6 @@ export default function ChatRoom({ user }: { user: User }) {
               </button>
             </div>
           )}
-
-          <button
-            onClick={handleLogout}
-            className="text-sm text-red-500 hover:text-red-600 font-medium"
-          >
-            Logout
-          </button>
         </div>
       </header>
 
@@ -187,7 +185,7 @@ export default function ChatRoom({ user }: { user: User }) {
               <div
                 className={`max-w-[75%] rounded-2xl px-4 py-2.5 shadow-sm ${
                   isMe
-                    ? 'bg-blue-600 text-white rounded-br-md'
+                    ? 'bg-blue-500 text-white rounded-br-md'
                     : 'bg-white text-gray-800 rounded-bl-md'
                 }`}
               >
@@ -222,7 +220,7 @@ export default function ChatRoom({ user }: { user: User }) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Type a message..."
-            className="flex-1 border border-gray-300 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="flex-1 border border-gray-300 rounded-full px-4 py-2.5 text-sm text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent"
           />
           <button
             type="submit"
