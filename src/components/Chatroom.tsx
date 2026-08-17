@@ -21,9 +21,15 @@ type Reaction = {
   emoji: string
 }
 
+type Room = {
+  id: string
+  name: string
+  description: string | null
+}
+
 const EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡']
 
-export default function ChatRoom({ user }: { user: User }) {
+export default function ChatRoom({ user, room }: { user: User; room: Room }) {
   const [messages, setMessages] = useState<Message[]>([])
   const [reactions, setReactions] = useState<Reaction[]>([])
   const [input, setInput] = useState('')
@@ -46,6 +52,7 @@ export default function ChatRoom({ user }: { user: User }) {
       const { data: messagesData } = await supabase
         .from('messages')
         .select('*')
+        .eq('room_id', room.id)
         .order('created_at', { ascending: true })
         .limit(100)
 
@@ -64,7 +71,7 @@ export default function ChatRoom({ user }: { user: User }) {
       .channel('global-chat')
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages' },
+        { event: 'INSERT', schema: 'public', table: 'messages', filter: `room_id=eq.${room.id}`, },
         (payload) => {
           const newMessage = payload.new as Message
           setMessages((prev) => {
@@ -133,6 +140,7 @@ export default function ChatRoom({ user }: { user: User }) {
       content,
       username: nickname,
       user_id: user.id,
+      room_id: room.id,
       reply_to: replyingTo ? replyingTo.id : null,
     })
 
@@ -152,10 +160,7 @@ export default function ChatRoom({ user }: { user: User }) {
 
   const toggleReaction = async (messageId: string, emoji: string) => {
     const existing = reactions.find(
-      (r) =>
-        r.message_id === messageId &&
-        r.user_id === user.id &&
-        r.emoji === emoji
+      (r) => r.message_id === messageId && r.user_id === user.id && r.emoji === emoji
     )
 
     if (existing) {
@@ -180,9 +185,7 @@ export default function ChatRoom({ user }: { user: User }) {
         grouped[r.emoji] = { count: 0, reactedByMe: false }
       }
       grouped[r.emoji].count++
-      if (r.user_id === user.id) {
-        grouped[r.emoji].reactedByMe = true
-      }
+      if (r.user_id === user.id) grouped[r.emoji].reactedByMe = true
     })
 
     return grouped
@@ -201,17 +204,20 @@ export default function ChatRoom({ user }: { user: User }) {
 
   if (loading) {
     return (
-      <div className="h-full flex items-center justify-center bg-white">
-        <p className="text-gray-500">Loading chat...</p>
+      <div className="h-full flex items-center justify-center bg-[#313338]">
+        <p className="text-gray-400">Loading chat...</p>
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-full bg-[#313338] text-gray-100">
       {/* Header */}
-      <header className="bg-white border-b px-4 py-3 flex items-center justify-between">
-        <h1 className="font-semibold text-lg text-gray-800">Chat Room</h1>
+      <header className="h-12 px-4 flex items-center justify-between border-b border-[#1e1f22] shadow-sm">
+        <div className="flex items-center gap-2">
+          <span className="text-gray-400">#</span>
+          <h1 className="font-semibold text-white">{room.name}</h1>
+        </div>
 
         <div className="flex items-center gap-3">
           {isEditingNickname ? (
@@ -220,11 +226,11 @@ export default function ChatRoom({ user }: { user: User }) {
                 type="text"
                 value={tempNickname}
                 onChange={(e) => setTempNickname(e.target.value)}
-                className="border rounded-md px-2 py-1 text-sm w-32 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="bg-[#1e1f22] border border-[#1e1f22] rounded px-2 py-1 text-sm w-32 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 maxLength={20}
                 autoFocus
               />
-              <button onClick={saveNickname} className="text-sm text-green-600 font-medium hover:underline">
+              <button onClick={saveNickname} className="text-sm text-green-400 hover:underline">
                 Save
               </button>
               <button
@@ -232,17 +238,17 @@ export default function ChatRoom({ user }: { user: User }) {
                   setIsEditingNickname(false)
                   setTempNickname(nickname)
                 }}
-                className="text-sm text-gray-500 hover:underline"
+                className="text-sm text-gray-400 hover:underline"
               >
                 Cancel
               </button>
             </div>
           ) : (
             <div className="flex items-center gap-1.5">
-              <span className="text-sm font-medium text-gray-700">{nickname}</span>
+              <span className="text-sm text-gray-300">{nickname}</span>
               <button
                 onClick={() => setIsEditingNickname(true)}
-                className="text-gray-400 hover:text-blue-600 transition"
+                className="text-gray-500 hover:text-gray-300 transition"
                 title="Edit nickname"
               >
                 ✎
@@ -250,132 +256,125 @@ export default function ChatRoom({ user }: { user: User }) {
             </div>
           )}
 
-          <button onClick={handleLogout} className="text-sm text-red-500 hover:text-red-600 font-medium">
+          <button onClick={handleLogout} className="text-sm text-red-400 hover:text-red-300">
             Logout
           </button>
         </div>
       </header>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-gray-50">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
         {messages.map((msg) => {
           const isMe = msg.user_id === user.id
           const messageReactions = getReactionsForMessage(msg.id)
           const repliedMessage = getReplyMessage(msg.reply_to)
 
           return (
-            <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-              <div className="relative max-w-[75%] group">
-                {/* Reply preview (the message this one is replying to) */}
-                {repliedMessage && (
-                  <div
-                    className={`mb-1 px-3 py-1.5 rounded-lg text-xs border-l-4 ${
-                      isMe
-                        ? 'bg-blue-500/20 border-blue-300 text-blue-100'
-                        : 'bg-gray-100 border-gray-400 text-gray-600'
-                    }`}
-                  >
-                    <p className="font-semibold">{repliedMessage.username}</p>
-                    <p className="truncate opacity-80">{repliedMessage.content}</p>
-                  </div>
-                )}
+            <div key={msg.id} className="group relative hover:bg-[#2e3035] px-2 py-1 rounded">
+              {/* Reply preview */}
+              {repliedMessage && (
+                <div className="flex items-center gap-1 mb-1 text-xs text-gray-400 ml-10 border-l-2 border-gray-600 pl-2">
+                  <span className="font-medium text-gray-300">{repliedMessage.username}</span>
+                  <span className="truncate max-w-xs">{repliedMessage.content}</span>
+                </div>
+              )}
 
-                {/* Message bubble */}
-                <div
-                  className={`rounded-2xl px-4 py-2.5 shadow-sm ${
-                    isMe
-                      ? 'bg-blue-600 text-white rounded-br-md'
-                      : 'bg-white text-gray-800 rounded-bl-md'
-                  }`}
-                >
-                  {!isMe && (
-                    <p className="text-xs font-semibold mb-1 opacity-70">{msg.username}</p>
-                  )}
-                  <p className="text-sm leading-relaxed">{msg.content}</p>
-                  <p className={`text-[11px] mt-1 ${isMe ? 'text-blue-100' : 'text-gray-400'}`}>
-                    {new Date(msg.created_at).toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
+              <div className="flex gap-3">
+                {/* Avatar */}
+                <div className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-sm font-medium text-white flex-shrink-0 mt-0.5">
+                  {msg.username.charAt(0).toUpperCase()}
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline gap-2">
+                    <span className={`font-medium text-sm ${isMe ? 'text-indigo-300' : 'text-white'}`}>
+                      {msg.username}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {new Date(msg.created_at).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </span>
+                  </div>
+
+                  <p className="text-gray-100 text-sm leading-relaxed mt-0.5 break-words">
+                    {msg.content}
                   </p>
+
+                  {/* Reactions */}
+                  {Object.keys(messageReactions).length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {Object.entries(messageReactions).map(([emoji, data]) => (
+                        <button
+                          key={emoji}
+                          onClick={() => toggleReaction(msg.id, emoji)}
+                          className={`text-xs px-1.5 py-0.5 rounded-full border ${
+                            data.reactedByMe
+                              ? 'bg-indigo-500/30 border-indigo-400'
+                              : 'bg-[#2b2d31] border-[#1e1f22] hover:border-gray-500'
+                          }`}
+                        >
+                          {emoji} {data.count}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
-
-                {/* Reactions */}
-                {Object.keys(messageReactions).length > 0 && (
-                  <div className={`flex flex-wrap gap-1 mt-1 ${isMe ? 'justify-end' : 'justify-start'}`}>
-                    {Object.entries(messageReactions).map(([emoji, data]) => (
-                      <button
-                        key={emoji}
-                        onClick={() => toggleReaction(msg.id, emoji)}
-                        className={`text-xs px-1.5 py-0.5 rounded-full border ${
-                          data.reactedByMe
-                            ? 'bg-blue-100 border-blue-300'
-                            : 'bg-white border-gray-200'
-                        }`}
-                      >
-                        {emoji} {data.count}
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {/* Action buttons (Reply + React) */}
-                <div
-                  className={`absolute -bottom-2 flex gap-1 opacity-0 group-hover:opacity-100 transition ${
-                    isMe ? 'left-0' : 'right-0'
-                  }`}
-                >
-                  <button
-                    onClick={() => startReply(msg)}
-                    className="text-md text-gray-500 bg-white rounded-full px-1.5 py-0.5 shadow-sm hover:bg-gray-50"
-                  >
-                    ↩
-                  </button>
-                  <button
-                    onClick={() =>
-                      setActiveReactionMessage(activeReactionMessage === msg.id ? null : msg.id)
-                    }
-                    className="text-md bg-white rounded-full px-1.5 py-0.5 shadow-sm hover:bg-gray-50"
-                  >
-                    😊
-                  </button>
-                </div>
-
-                {/* Emoji picker */}
-                {activeReactionMessage === msg.id && (
-                  <div
-                    className={`absolute bottom-8 bg-white border rounded-full shadow-lg px-2 py-1 flex gap-1 z-10 ${
-                      isMe ? 'right-0' : 'left-0'
-                    }`}
-                  >
-                    {EMOJIS.map((emoji) => (
-                      <button
-                        key={emoji}
-                        onClick={() => toggleReaction(msg.id, emoji)}
-                        className="hover:scale-125 transition text-lg"
-                      >
-                        {emoji}
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
+
+              {/* Action buttons */}
+              <div className="absolute right-2 top-0 hidden group-hover:flex items-center gap-1 bg-[#2b2d31] border border-[#1e1f22] rounded shadow-sm">
+                <button
+                  onClick={() => startReply(msg)}
+                  className="p-1.5 text-gray-400 hover:text-white hover:bg-[#35373c] rounded"
+                  title="Reply"
+                >
+                  ↩
+                </button>
+                <button
+                  onClick={() =>
+                    setActiveReactionMessage(activeReactionMessage === msg.id ? null : msg.id)
+                  }
+                  className="p-1.5 text-gray-400 hover:text-white hover:bg-[#35373c] rounded"
+                  title="Add Reaction"
+                >
+                  😊
+                </button>
+              </div>
+
+              {/* Emoji picker */}
+              {activeReactionMessage === msg.id && (
+                <div className="absolute right-2 top-10 bg-[#2b2d31] border border-[#1e1f22] rounded-lg shadow-lg px-2 py-1.5 flex gap-1 z-10">
+                  {EMOJIS.map((emoji) => (
+                    <button
+                      key={emoji}
+                      onClick={() => toggleReaction(msg.id, emoji)}
+                      className="hover:scale-125 transition text-lg p-1"
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )
         })}
         <div ref={bottomRef} />
       </div>
 
-      {/* Reply preview bar */}
+      {/* Reply bar */}
       {replyingTo && (
-        <div className="bg-gray-100 border-t px-4 py-2 flex items-center justify-between">
+        <div className="bg-[#2b2d31] border-t border-[#1e1f22] px-4 py-2 flex items-center justify-between">
           <div className="text-sm">
-            <p className="text-xs text-gray-500">Replying to <span className="font-medium">{replyingTo.username}</span></p>
-            <p className="text-gray-700 truncate max-w-xs">{replyingTo.content}</p>
+            <p className="text-xs text-gray-400">
+              Replying to <span className="text-indigo-300 font-medium">{replyingTo.username}</span>
+            </p>
+            <p className="text-gray-300 truncate max-w-md">{replyingTo.content}</p>
           </div>
           <button
             onClick={() => setReplyingTo(null)}
-            className="text-gray-500 hover:text-gray-700 text-lg"
+            className="text-gray-400 hover:text-white text-lg"
           >
             ✕
           </button>
@@ -383,23 +382,16 @@ export default function ChatRoom({ user }: { user: User }) {
       )}
 
       {/* Input */}
-      <div className="bg-white border-t px-4 py-3">
-        <form onSubmit={sendMessage} className="flex items-center gap-2">
+      <div className="px-4 pb-4 pt-2">
+        <form onSubmit={sendMessage} className="relative">
           <input
             ref={inputRef}
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={replyingTo ? 'Write a reply...' : 'Type a message...'}
-            className="flex-1 border border-gray-300 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder={replyingTo ? `Reply to ${replyingTo.username}...` : 'Message #general'}
+            className="w-full bg-[#383a40] text-gray-100 rounded-lg px-4 py-3 text-sm focus:outline-none placeholder:text-gray-500"
           />
-          <button
-            type="submit"
-            disabled={!input.trim()}
-            className="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-5 py-2.5 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition"
-          >
-            Send
-          </button>
         </form>
       </div>
     </div>
