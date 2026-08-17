@@ -221,6 +221,47 @@ export default function ChatRoom({ user, room }: { user: User; room: Room }) {
     return grouped
   }
 
+  const renderMessageContent = (content: string) => {
+    // Regular expression to find URLs
+    const urlRegex = /(https?:\/\/[^\s]+)/g
+    const parts = content.split(urlRegex)
+
+    return parts.map((part, index) => {
+      if (part.match(urlRegex)) {
+        const isImage = /\.(jpeg|jpg|png|gif|webp|image)(\?.*)?$/i.test(part)
+
+        if (isImage) {
+          return (
+            <div key={index} className="mt-2">
+              <a href={part} target="_blank" rel="noopener noreferrer">
+                <img
+                  src={part}
+                  alt="Shared image"
+                  className="max-w-full max-h-64 rounded-lg border border-[#1e1f22] cursor-pointer hover:opacity-90 transition"
+                />
+              </a>
+            </div>
+          )
+        }
+
+        // Normal link
+        return (
+          <a
+            key={index}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-indigo-400 hover:underline break-all"
+          >
+            {part}
+          </a>
+        )
+      }
+
+      return <span key={index}>{part}</span>
+    })
+  }
+
   const getReplyMessage = (replyToId: string | null) => {
     if (!replyToId) return null
     return messages.find((m) => m.id === replyToId) || null
@@ -328,9 +369,9 @@ export default function ChatRoom({ user, room }: { user: User; room: Room }) {
                     </span>
                   </div>
 
-                  <p className="text-gray-100 text-sm leading-relaxed mt-0.5 break-words">
-                    {msg.content}
-                  </p>
+                  <div className="text-gray-100 text-sm leading-relaxed mt-0.5 break-words">
+                    {renderMessageContent(msg.content)}
+                  </div>
 
                   {/* Reactions */}
                   {Object.keys(messageReactions).length > 0 && (

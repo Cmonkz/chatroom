@@ -208,6 +208,9 @@ function ChatRoom({ user, room }) {
     const router = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRouter"])();
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
         "ChatRoom.useEffect": ()=>{
+            // Reset messages when switching rooms
+            setMessages([]);
+            setLoading(true);
             const loadData = {
                 "ChatRoom.useEffect.loadData": async ()=>{
                     const { data: messagesData } = await supabase.from('messages').select('*').eq('room_id', room.id).order('created_at', {
@@ -220,7 +223,7 @@ function ChatRoom({ user, room }) {
                 }
             }["ChatRoom.useEffect.loadData"];
             loadData();
-            const messageChannel = supabase.channel('global-chat').on('postgres_changes', {
+            const messageChannel = supabase.channel(`room-${room.id}`).on('postgres_changes', {
                 event: 'INSERT',
                 schema: 'public',
                 table: 'messages',
@@ -241,43 +244,15 @@ function ChatRoom({ user, room }) {
                     }["ChatRoom.useEffect.messageChannel"]);
                 }
             }["ChatRoom.useEffect.messageChannel"]).subscribe();
-            const reactionChannel = supabase.channel('reactions').on('postgres_changes', {
-                event: '*',
-                schema: 'public',
-                table: 'message_reactions'
-            }, {
-                "ChatRoom.useEffect.reactionChannel": (payload)=>{
-                    if (payload.eventType === 'INSERT') {
-                        const newReaction = payload.new;
-                        setReactions({
-                            "ChatRoom.useEffect.reactionChannel": (prev)=>{
-                                if (prev.some({
-                                    "ChatRoom.useEffect.reactionChannel": (r)=>r.id === newReaction.id
-                                }["ChatRoom.useEffect.reactionChannel"])) return prev;
-                                return [
-                                    ...prev,
-                                    newReaction
-                                ];
-                            }
-                        }["ChatRoom.useEffect.reactionChannel"]);
-                    }
-                    if (payload.eventType === 'DELETE') {
-                        setReactions({
-                            "ChatRoom.useEffect.reactionChannel": (prev)=>prev.filter({
-                                    "ChatRoom.useEffect.reactionChannel": (r)=>r.id !== payload.old.id
-                                }["ChatRoom.useEffect.reactionChannel"])
-                        }["ChatRoom.useEffect.reactionChannel"]);
-                    }
-                }
-            }["ChatRoom.useEffect.reactionChannel"]).subscribe();
             return ({
                 "ChatRoom.useEffect": ()=>{
                     supabase.removeChannel(messageChannel);
-                    supabase.removeChannel(reactionChannel);
                 }
             })["ChatRoom.useEffect"];
         }
-    }["ChatRoom.useEffect"], []);
+    }["ChatRoom.useEffect"], [
+        room.id
+    ]); // ← important: runs again when room changes
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
         "ChatRoom.useEffect": ()=>{
             bottomRef.current?.scrollIntoView({
@@ -328,13 +303,39 @@ function ChatRoom({ user, room }) {
     const toggleReaction = async (messageId, emoji)=>{
         const existing = reactions.find((r)=>r.message_id === messageId && r.user_id === user.id && r.emoji === emoji);
         if (existing) {
+            // 1. Remove from UI immediately
+            setReactions((prev)=>prev.filter((r)=>r.id !== existing.id));
+            // 2. Remove from database
             await supabase.from('message_reactions').delete().eq('id', existing.id);
         } else {
-            await supabase.from('message_reactions').insert({
+            // Temporary ID for optimistic update
+            const tempId = crypto.randomUUID();
+            // 1. Add to UI immediately
+            setReactions((prev)=>[
+                    ...prev,
+                    {
+                        id: tempId,
+                        message_id: messageId,
+                        user_id: user.id,
+                        emoji
+                    }
+                ]);
+            // 2. Save to database
+            const { data, error } = await supabase.from('message_reactions').insert({
                 message_id: messageId,
                 user_id: user.id,
                 emoji
-            });
+            }).select().single();
+            if (error) {
+                // If failed, remove the temporary reaction
+                setReactions((prev)=>prev.filter((r)=>r.id !== tempId));
+                console.error(error);
+                return;
+            }
+            // Replace temporary reaction with the real one from database
+            if (data) {
+                setReactions((prev)=>prev.map((r)=>r.id === tempId ? data : r));
+            }
         }
         setActiveReactionMessage(null);
     };
@@ -353,6 +354,62 @@ function ChatRoom({ user, room }) {
         });
         return grouped;
     };
+    const renderMessageContent = (content)=>{
+        // Regular expression to find URLs
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        const parts = content.split(urlRegex);
+        return parts.map((part, index)=>{
+            if (part.match(urlRegex)) {
+                const isImage = /\.(jpeg|jpg|png|gif|webp|image)(\?.*)?$/i.test(part);
+                if (isImage) {
+                    return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        className: "mt-2",
+                        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("a", {
+                            href: part,
+                            target: "_blank",
+                            rel: "noopener noreferrer",
+                            children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("img", {
+                                src: part,
+                                alt: "Shared image",
+                                className: "max-w-full max-h-64 rounded-lg border border-[#1e1f22] cursor-pointer hover:opacity-90 transition"
+                            }, void 0, false, {
+                                fileName: "[project]/src/components/Chatroom.tsx",
+                                lineNumber: 237,
+                                columnNumber: 17
+                            }, this)
+                        }, void 0, false, {
+                            fileName: "[project]/src/components/Chatroom.tsx",
+                            lineNumber: 236,
+                            columnNumber: 15
+                        }, this)
+                    }, index, false, {
+                        fileName: "[project]/src/components/Chatroom.tsx",
+                        lineNumber: 235,
+                        columnNumber: 13
+                    }, this);
+                }
+                // Normal link
+                return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("a", {
+                    href: part,
+                    target: "_blank",
+                    rel: "noopener noreferrer",
+                    className: "text-indigo-400 hover:underline break-all",
+                    children: part
+                }, index, false, {
+                    fileName: "[project]/src/components/Chatroom.tsx",
+                    lineNumber: 249,
+                    columnNumber: 11
+                }, this);
+            }
+            return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                children: part
+            }, index, false, {
+                fileName: "[project]/src/components/Chatroom.tsx",
+                lineNumber: 261,
+                columnNumber: 14
+            }, this);
+        });
+    };
     const getReplyMessage = (replyToId)=>{
         if (!replyToId) return null;
         return messages.find((m)=>m.id === replyToId) || null;
@@ -370,12 +427,12 @@ function ChatRoom({ user, room }) {
                 children: "Loading chat..."
             }, void 0, false, {
                 fileName: "[project]/src/components/Chatroom.tsx",
-                lineNumber: 208,
+                lineNumber: 279,
                 columnNumber: 9
             }, this)
         }, void 0, false, {
             fileName: "[project]/src/components/Chatroom.tsx",
-            lineNumber: 207,
+            lineNumber: 278,
             columnNumber: 7
         }, this);
     }
@@ -393,7 +450,7 @@ function ChatRoom({ user, room }) {
                                 children: "#"
                             }, void 0, false, {
                                 fileName: "[project]/src/components/Chatroom.tsx",
-                                lineNumber: 218,
+                                lineNumber: 289,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h1", {
@@ -401,13 +458,13 @@ function ChatRoom({ user, room }) {
                                 children: room.name
                             }, void 0, false, {
                                 fileName: "[project]/src/components/Chatroom.tsx",
-                                lineNumber: 219,
+                                lineNumber: 290,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/components/Chatroom.tsx",
-                        lineNumber: 217,
+                        lineNumber: 288,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -425,7 +482,7 @@ function ChatRoom({ user, room }) {
                                         autoFocus: true
                                     }, void 0, false, {
                                         fileName: "[project]/src/components/Chatroom.tsx",
-                                        lineNumber: 225,
+                                        lineNumber: 296,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -434,7 +491,7 @@ function ChatRoom({ user, room }) {
                                         children: "Save"
                                     }, void 0, false, {
                                         fileName: "[project]/src/components/Chatroom.tsx",
-                                        lineNumber: 233,
+                                        lineNumber: 304,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -446,13 +503,13 @@ function ChatRoom({ user, room }) {
                                         children: "Cancel"
                                     }, void 0, false, {
                                         fileName: "[project]/src/components/Chatroom.tsx",
-                                        lineNumber: 236,
+                                        lineNumber: 307,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/components/Chatroom.tsx",
-                                lineNumber: 224,
+                                lineNumber: 295,
                                 columnNumber: 13
                             }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                 className: "flex items-center gap-1.5",
@@ -462,7 +519,7 @@ function ChatRoom({ user, room }) {
                                         children: nickname
                                     }, void 0, false, {
                                         fileName: "[project]/src/components/Chatroom.tsx",
-                                        lineNumber: 248,
+                                        lineNumber: 319,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -472,13 +529,13 @@ function ChatRoom({ user, room }) {
                                         children: "✎"
                                     }, void 0, false, {
                                         fileName: "[project]/src/components/Chatroom.tsx",
-                                        lineNumber: 249,
+                                        lineNumber: 320,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/components/Chatroom.tsx",
-                                lineNumber: 247,
+                                lineNumber: 318,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -487,19 +544,19 @@ function ChatRoom({ user, room }) {
                                 children: "Logout"
                             }, void 0, false, {
                                 fileName: "[project]/src/components/Chatroom.tsx",
-                                lineNumber: 259,
+                                lineNumber: 330,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/components/Chatroom.tsx",
-                        lineNumber: 222,
+                        lineNumber: 293,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/components/Chatroom.tsx",
-                lineNumber: 216,
+                lineNumber: 287,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -520,7 +577,7 @@ function ChatRoom({ user, room }) {
                                             children: repliedMessage.username
                                         }, void 0, false, {
                                             fileName: "[project]/src/components/Chatroom.tsx",
-                                            lineNumber: 277,
+                                            lineNumber: 348,
                                             columnNumber: 19
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -528,13 +585,13 @@ function ChatRoom({ user, room }) {
                                             children: repliedMessage.content
                                         }, void 0, false, {
                                             fileName: "[project]/src/components/Chatroom.tsx",
-                                            lineNumber: 278,
+                                            lineNumber: 349,
                                             columnNumber: 19
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/components/Chatroom.tsx",
-                                    lineNumber: 276,
+                                    lineNumber: 347,
                                     columnNumber: 17
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -545,7 +602,7 @@ function ChatRoom({ user, room }) {
                                             children: msg.username.charAt(0).toUpperCase()
                                         }, void 0, false, {
                                             fileName: "[project]/src/components/Chatroom.tsx",
-                                            lineNumber: 284,
+                                            lineNumber: 355,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -559,7 +616,7 @@ function ChatRoom({ user, room }) {
                                                             children: msg.username
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/components/Chatroom.tsx",
-                                                            lineNumber: 290,
+                                                            lineNumber: 361,
                                                             columnNumber: 21
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -570,21 +627,21 @@ function ChatRoom({ user, room }) {
                                                             })
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/components/Chatroom.tsx",
-                                                            lineNumber: 293,
+                                                            lineNumber: 364,
                                                             columnNumber: 21
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/src/components/Chatroom.tsx",
-                                                    lineNumber: 289,
+                                                    lineNumber: 360,
                                                     columnNumber: 19
                                                 }, this),
-                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                                     className: "text-gray-100 text-sm leading-relaxed mt-0.5 break-words",
-                                                    children: msg.content
+                                                    children: renderMessageContent(msg.content)
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/components/Chatroom.tsx",
-                                                    lineNumber: 301,
+                                                    lineNumber: 372,
                                                     columnNumber: 19
                                                 }, this),
                                                 Object.keys(messageReactions).length > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -599,24 +656,24 @@ function ChatRoom({ user, room }) {
                                                             ]
                                                         }, emoji, true, {
                                                             fileName: "[project]/src/components/Chatroom.tsx",
-                                                            lineNumber: 309,
+                                                            lineNumber: 380,
                                                             columnNumber: 25
                                                         }, this))
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/components/Chatroom.tsx",
-                                                    lineNumber: 307,
+                                                    lineNumber: 378,
                                                     columnNumber: 21
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/components/Chatroom.tsx",
-                                            lineNumber: 288,
+                                            lineNumber: 359,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/components/Chatroom.tsx",
-                                    lineNumber: 282,
+                                    lineNumber: 353,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -629,7 +686,7 @@ function ChatRoom({ user, room }) {
                                             children: "↩"
                                         }, void 0, false, {
                                             fileName: "[project]/src/components/Chatroom.tsx",
-                                            lineNumber: 328,
+                                            lineNumber: 399,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -639,13 +696,13 @@ function ChatRoom({ user, room }) {
                                             children: "😊"
                                         }, void 0, false, {
                                             fileName: "[project]/src/components/Chatroom.tsx",
-                                            lineNumber: 335,
+                                            lineNumber: 406,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/components/Chatroom.tsx",
-                                    lineNumber: 327,
+                                    lineNumber: 398,
                                     columnNumber: 15
                                 }, this),
                                 activeReactionMessage === msg.id && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -656,18 +713,18 @@ function ChatRoom({ user, room }) {
                                             children: emoji
                                         }, emoji, false, {
                                             fileName: "[project]/src/components/Chatroom.tsx",
-                                            lineNumber: 350,
+                                            lineNumber: 421,
                                             columnNumber: 21
                                         }, this))
                                 }, void 0, false, {
                                     fileName: "[project]/src/components/Chatroom.tsx",
-                                    lineNumber: 348,
+                                    lineNumber: 419,
                                     columnNumber: 17
                                 }, this)
                             ]
                         }, msg.id, true, {
                             fileName: "[project]/src/components/Chatroom.tsx",
-                            lineNumber: 273,
+                            lineNumber: 344,
                             columnNumber: 13
                         }, this);
                     }),
@@ -675,13 +732,13 @@ function ChatRoom({ user, room }) {
                         ref: bottomRef
                     }, void 0, false, {
                         fileName: "[project]/src/components/Chatroom.tsx",
-                        lineNumber: 363,
+                        lineNumber: 434,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/components/Chatroom.tsx",
-                lineNumber: 266,
+                lineNumber: 337,
                 columnNumber: 7
             }, this),
             replyingTo && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -699,13 +756,13 @@ function ChatRoom({ user, room }) {
                                         children: replyingTo.username
                                     }, void 0, false, {
                                         fileName: "[project]/src/components/Chatroom.tsx",
-                                        lineNumber: 371,
+                                        lineNumber: 442,
                                         columnNumber: 27
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/components/Chatroom.tsx",
-                                lineNumber: 370,
+                                lineNumber: 441,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -713,13 +770,13 @@ function ChatRoom({ user, room }) {
                                 children: replyingTo.content
                             }, void 0, false, {
                                 fileName: "[project]/src/components/Chatroom.tsx",
-                                lineNumber: 373,
+                                lineNumber: 444,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/components/Chatroom.tsx",
-                        lineNumber: 369,
+                        lineNumber: 440,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -728,13 +785,13 @@ function ChatRoom({ user, room }) {
                         children: "✕"
                     }, void 0, false, {
                         fileName: "[project]/src/components/Chatroom.tsx",
-                        lineNumber: 375,
+                        lineNumber: 446,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/components/Chatroom.tsx",
-                lineNumber: 368,
+                lineNumber: 439,
                 columnNumber: 9
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -751,23 +808,23 @@ function ChatRoom({ user, room }) {
                         className: "w-full bg-[#383a40] text-gray-100 rounded-lg px-4 py-3 text-sm focus:outline-none placeholder:text-gray-500"
                     }, void 0, false, {
                         fileName: "[project]/src/components/Chatroom.tsx",
-                        lineNumber: 387,
+                        lineNumber: 458,
                         columnNumber: 11
                     }, this)
                 }, void 0, false, {
                     fileName: "[project]/src/components/Chatroom.tsx",
-                    lineNumber: 386,
+                    lineNumber: 457,
                     columnNumber: 9
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/src/components/Chatroom.tsx",
-                lineNumber: 385,
+                lineNumber: 456,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/src/components/Chatroom.tsx",
-        lineNumber: 214,
+        lineNumber: 285,
         columnNumber: 5
     }, this);
 }
