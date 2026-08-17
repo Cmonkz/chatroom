@@ -4,8 +4,8 @@ import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import type { User } from '@supabase/supabase-js'
-
-type Message = {
+//message
+type Message = {   
   id: string
   content: string
   username: string
