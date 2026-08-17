@@ -148,19 +148,61 @@ export default function ChatRoom({ user, room }: { user: User; room: Room }) {
 
   const toggleReaction = async (messageId: string, emoji: string) => {
     const existing = reactions.find(
-      (r) => r.message_id === messageId && r.user_id === user.id && r.emoji === emoji
+      (r) =>
+        r.message_id === messageId &&
+        r.user_id === user.id &&
+        r.emoji === emoji
     )
 
     if (existing) {
-      await supabase.from('message_reactions').delete().eq('id', existing.id)
-    } else {
-      await supabase.from('message_reactions').insert({
-        message_id: messageId,
-        user_id: user.id,
-        emoji,
-      })
-    }
+      // 1. Remove from UI immediately
+      setReactions((prev) => prev.filter((r) => r.id !== existing.id))
 
+      // 2. Remove from database
+      await supabase
+        .from('message_reactions')
+        .delete()
+        .eq('id', existing.id)
+    } else {
+      // Temporary ID for optimistic update
+      const tempId = crypto.randomUUID()
+
+      // 1. Add to UI immediately
+      setReactions((prev) => [
+        ...prev,
+        {
+          id: tempId,
+          message_id: messageId,
+          user_id: user.id,
+          emoji,
+        },
+      ])
+
+      // 2. Save to database
+      const { data, error } = await supabase
+        .from('message_reactions')
+        .insert({
+          message_id: messageId,
+          user_id: user.id,
+          emoji,
+        })
+        .select()
+        .single()
+
+      if (error) {
+        // If failed, remove the temporary reaction
+        setReactions((prev) => prev.filter((r) => r.id !== tempId))
+        console.error(error)
+        return
+      }
+
+      // Replace temporary reaction with the real one from database
+      if (data) {
+        setReactions((prev) =>
+          prev.map((r) => (r.id === tempId ? data : r))
+        )
+      }
+    }
     setActiveReactionMessage(null)
   }
 
