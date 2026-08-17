@@ -48,65 +48,53 @@ export default function ChatRoom({ user, room }: { user: User; room: Room }) {
   const router = useRouter()
 
   useEffect(() => {
-    const loadData = async () => {
-      const { data: messagesData } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('room_id', room.id)
-        .order('created_at', { ascending: true })
-        .limit(100)
+  // Reset messages when switching rooms
+  setMessages([])
+  setLoading(true)
 
-      const { data: reactionsData } = await supabase
-        .from('message_reactions')
-        .select('*')
+  const loadData = async () => {
+    const { data: messagesData } = await supabase
+      .from('messages')
+      .select('*')
+      .eq('room_id', room.id)
+      .order('created_at', { ascending: true })
+      .limit(100)
 
-      if (messagesData) setMessages(messagesData)
-      if (reactionsData) setReactions(reactionsData)
-      setLoading(false)
-    }
+    const { data: reactionsData } = await supabase
+      .from('message_reactions')
+      .select('*')
 
-    loadData()
+    if (messagesData) setMessages(messagesData)
+    if (reactionsData) setReactions(reactionsData)
+    setLoading(false)
+  }
 
-    const messageChannel = supabase
-      .channel('global-chat')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages', filter: `room_id=eq.${room.id}`, },
-        (payload) => {
-          const newMessage = payload.new as Message
-          setMessages((prev) => {
-            if (prev.some((m) => m.id === newMessage.id)) return prev
-            return [...prev, newMessage]
-          })
-        }
-      )
-      .subscribe()
+  loadData()
 
-    const reactionChannel = supabase
-      .channel('reactions')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'message_reactions' },
-        (payload) => {
-          if (payload.eventType === 'INSERT') {
-            const newReaction = payload.new as Reaction
-            setReactions((prev) => {
-              if (prev.some((r) => r.id === newReaction.id)) return prev
-              return [...prev, newReaction]
-            })
-          }
-          if (payload.eventType === 'DELETE') {
-            setReactions((prev) => prev.filter((r) => r.id !== payload.old.id))
-          }
-        }
-      )
-      .subscribe()
+  const messageChannel = supabase
+    .channel(`room-${room.id}`)
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `room_id=eq.${room.id}`,
+      },
+      (payload) => {
+        const newMessage = payload.new as Message
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === newMessage.id)) return prev
+          return [...prev, newMessage]
+        })
+      }
+    )
+    .subscribe()
 
-    return () => {
-      supabase.removeChannel(messageChannel)
-      supabase.removeChannel(reactionChannel)
-    }
-  }, [])
+  return () => {
+    supabase.removeChannel(messageChannel)
+  }
+}, [room.id]) // ← important: runs again when room changes
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
