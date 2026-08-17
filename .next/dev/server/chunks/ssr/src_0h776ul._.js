@@ -15,26 +15,40 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navi
 ;
 ;
 ;
+const EMOJIS = [
+    '👍',
+    '❤️',
+    '😂',
+    '😮',
+    '😢',
+    '😡'
+];
 function ChatRoom({ user }) {
     const [messages, setMessages] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])([]);
+    const [reactions, setReactions] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])([]);
     const [input, setInput] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])('');
     const [loading, setLoading] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])(true);
     const [isEditingNickname, setIsEditingNickname] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])(false);
     const [nickname, setNickname] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])(user.user_metadata?.nickname || user.email?.split('@')[0] || 'User');
     const [tempNickname, setTempNickname] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])(nickname);
+    const [activeReactionMessage, setActiveReactionMessage] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])(null);
+    const [replyingTo, setReplyingTo] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useState"])(null);
     const bottomRef = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useRef"])(null);
+    const inputRef = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useRef"])(null);
     const supabase = (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$supabase$2f$client$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["createClient"])();
     const router = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useRouter"])();
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useEffect"])(()=>{
-        const loadMessages = async ()=>{
-            const { data } = await supabase.from('messages').select('*').order('created_at', {
+        const loadData = async ()=>{
+            const { data: messagesData } = await supabase.from('messages').select('*').order('created_at', {
                 ascending: true
             }).limit(100);
-            if (data) setMessages(data);
+            const { data: reactionsData } = await supabase.from('message_reactions').select('*');
+            if (messagesData) setMessages(messagesData);
+            if (reactionsData) setReactions(reactionsData);
             setLoading(false);
         };
-        loadMessages();
-        const channel = supabase.channel('global-chat').on('postgres_changes', {
+        loadData();
+        const messageChannel = supabase.channel('global-chat').on('postgres_changes', {
             event: 'INSERT',
             schema: 'public',
             table: 'messages'
@@ -48,8 +62,28 @@ function ChatRoom({ user }) {
                 ];
             });
         }).subscribe();
+        const reactionChannel = supabase.channel('reactions').on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'message_reactions'
+        }, (payload)=>{
+            if (payload.eventType === 'INSERT') {
+                const newReaction = payload.new;
+                setReactions((prev)=>{
+                    if (prev.some((r)=>r.id === newReaction.id)) return prev;
+                    return [
+                        ...prev,
+                        newReaction
+                    ];
+                });
+            }
+            if (payload.eventType === 'DELETE') {
+                setReactions((prev)=>prev.filter((r)=>r.id !== payload.old.id));
+            }
+        }).subscribe();
         return ()=>{
-            supabase.removeChannel(channel);
+            supabase.removeChannel(messageChannel);
+            supabase.removeChannel(reactionChannel);
         };
     }, []);
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useEffect"])(()=>{
@@ -82,12 +116,53 @@ function ChatRoom({ user }) {
         const { error } = await supabase.from('messages').insert({
             content,
             username: nickname,
-            user_id: user.id
+            user_id: user.id,
+            reply_to: replyingTo ? replyingTo.id : null
         });
         if (error) {
             console.error(error);
             alert('Failed to send message');
         }
+        setReplyingTo(null);
+    };
+    const startReply = (message)=>{
+        setReplyingTo(message);
+        setActiveReactionMessage(null);
+        inputRef.current?.focus();
+    };
+    const toggleReaction = async (messageId, emoji)=>{
+        const existing = reactions.find((r)=>r.message_id === messageId && r.user_id === user.id && r.emoji === emoji);
+        if (existing) {
+            await supabase.from('message_reactions').delete().eq('id', existing.id);
+        } else {
+            await supabase.from('message_reactions').insert({
+                message_id: messageId,
+                user_id: user.id,
+                emoji
+            });
+        }
+        setActiveReactionMessage(null);
+    };
+    const getReactionsForMessage = (messageId)=>{
+        const messageReactions = reactions.filter((r)=>r.message_id === messageId);
+        const grouped = {};
+        messageReactions.forEach((r)=>{
+            if (!grouped[r.emoji]) {
+                grouped[r.emoji] = {
+                    count: 0,
+                    reactedByMe: false
+                };
+            }
+            grouped[r.emoji].count++;
+            if (r.user_id === user.id) {
+                grouped[r.emoji].reactedByMe = true;
+            }
+        });
+        return grouped;
+    };
+    const getReplyMessage = (replyToId)=>{
+        if (!replyToId) return null;
+        return messages.find((m)=>m.id === replyToId) || null;
     };
     const handleLogout = async ()=>{
         await supabase.auth.signOut();
@@ -102,12 +177,12 @@ function ChatRoom({ user }) {
                 children: "Loading chat..."
             }, void 0, false, {
                 fileName: "[project]/src/components/Chatroom.tsx",
-                lineNumber: 117,
+                lineNumber: 205,
                 columnNumber: 9
             }, this)
         }, void 0, false, {
             fileName: "[project]/src/components/Chatroom.tsx",
-            lineNumber: 116,
+            lineNumber: 204,
             columnNumber: 7
         }, this);
     }
@@ -117,151 +192,251 @@ function ChatRoom({ user }) {
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("header", {
                 className: "bg-white border-b px-4 py-3 flex items-center justify-between",
                 children: [
-                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
-                        onClick: handleLogout,
-                        className: "text-sm text-red-500 hover:text-red-600 font-medium",
-                        children: "Logout"
-                    }, void 0, false, {
-                        fileName: "[project]/src/components/Chatroom.tsx",
-                        lineNumber: 126,
-                        columnNumber: 9
-                    }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h1", {
                         className: "font-semibold text-lg text-gray-800",
-                        children: "Lego"
+                        children: "Chat Room"
                     }, void 0, false, {
                         fileName: "[project]/src/components/Chatroom.tsx",
-                        lineNumber: 131,
+                        lineNumber: 214,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                         className: "flex items-center gap-3",
-                        children: isEditingNickname ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                            className: "flex items-center gap-2",
-                            children: [
-                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
-                                    type: "text",
-                                    value: tempNickname,
-                                    onChange: (e)=>setTempNickname(e.target.value),
-                                    className: "border rounded-md px-2 py-1 text-sm w-32 focus:outline-none focus:ring-2 focus:ring-blue-500",
-                                    maxLength: 20,
-                                    autoFocus: true
-                                }, void 0, false, {
-                                    fileName: "[project]/src/components/Chatroom.tsx",
-                                    lineNumber: 136,
-                                    columnNumber: 15
-                                }, this),
-                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
-                                    onClick: saveNickname,
-                                    className: "text-sm text-green-600 font-medium hover:underline",
-                                    children: "Save"
-                                }, void 0, false, {
-                                    fileName: "[project]/src/components/Chatroom.tsx",
-                                    lineNumber: 144,
-                                    columnNumber: 15
-                                }, this),
-                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
-                                    onClick: ()=>{
-                                        setIsEditingNickname(false);
-                                        setTempNickname(nickname);
-                                    },
-                                    className: "text-sm text-gray-500 hover:underline",
-                                    children: "Cancel"
-                                }, void 0, false, {
-                                    fileName: "[project]/src/components/Chatroom.tsx",
-                                    lineNumber: 150,
-                                    columnNumber: 15
-                                }, this)
-                            ]
-                        }, void 0, true, {
-                            fileName: "[project]/src/components/Chatroom.tsx",
-                            lineNumber: 135,
-                            columnNumber: 13
-                        }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                            className: "flex items-center gap-1.5",
-                            children: [
-                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                    className: "text-sm font-medium text-gray-700",
-                                    children: nickname
-                                }, void 0, false, {
-                                    fileName: "[project]/src/components/Chatroom.tsx",
-                                    lineNumber: 162,
-                                    columnNumber: 15
-                                }, this),
-                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
-                                    onClick: ()=>setIsEditingNickname(true),
-                                    className: "text-gray-400 hover:text-blue-600 transition",
-                                    title: "Edit nickname",
-                                    children: "✎"
-                                }, void 0, false, {
-                                    fileName: "[project]/src/components/Chatroom.tsx",
-                                    lineNumber: 163,
-                                    columnNumber: 15
-                                }, this)
-                            ]
-                        }, void 0, true, {
-                            fileName: "[project]/src/components/Chatroom.tsx",
-                            lineNumber: 161,
-                            columnNumber: 13
-                        }, this)
-                    }, void 0, false, {
+                        children: [
+                            isEditingNickname ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                className: "flex items-center gap-2",
+                                children: [
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                        type: "text",
+                                        value: tempNickname,
+                                        onChange: (e)=>setTempNickname(e.target.value),
+                                        className: "border rounded-md px-2 py-1 text-sm w-32 focus:outline-none focus:ring-2 focus:ring-blue-500",
+                                        maxLength: 20,
+                                        autoFocus: true
+                                    }, void 0, false, {
+                                        fileName: "[project]/src/components/Chatroom.tsx",
+                                        lineNumber: 219,
+                                        columnNumber: 15
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                        onClick: saveNickname,
+                                        className: "text-sm text-green-600 font-medium hover:underline",
+                                        children: "Save"
+                                    }, void 0, false, {
+                                        fileName: "[project]/src/components/Chatroom.tsx",
+                                        lineNumber: 227,
+                                        columnNumber: 15
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                        onClick: ()=>{
+                                            setIsEditingNickname(false);
+                                            setTempNickname(nickname);
+                                        },
+                                        className: "text-sm text-gray-500 hover:underline",
+                                        children: "Cancel"
+                                    }, void 0, false, {
+                                        fileName: "[project]/src/components/Chatroom.tsx",
+                                        lineNumber: 230,
+                                        columnNumber: 15
+                                    }, this)
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/src/components/Chatroom.tsx",
+                                lineNumber: 218,
+                                columnNumber: 13
+                            }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                className: "flex items-center gap-1.5",
+                                children: [
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                        className: "text-sm font-medium text-gray-700",
+                                        children: nickname
+                                    }, void 0, false, {
+                                        fileName: "[project]/src/components/Chatroom.tsx",
+                                        lineNumber: 242,
+                                        columnNumber: 15
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                        onClick: ()=>setIsEditingNickname(true),
+                                        className: "text-gray-400 hover:text-blue-600 transition",
+                                        title: "Edit nickname",
+                                        children: "✎"
+                                    }, void 0, false, {
+                                        fileName: "[project]/src/components/Chatroom.tsx",
+                                        lineNumber: 243,
+                                        columnNumber: 15
+                                    }, this)
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/src/components/Chatroom.tsx",
+                                lineNumber: 241,
+                                columnNumber: 13
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                onClick: handleLogout,
+                                className: "text-sm text-red-500 hover:text-red-600 font-medium",
+                                children: "Logout"
+                            }, void 0, false, {
+                                fileName: "[project]/src/components/Chatroom.tsx",
+                                lineNumber: 253,
+                                columnNumber: 11
+                            }, this)
+                        ]
+                    }, void 0, true, {
                         fileName: "[project]/src/components/Chatroom.tsx",
-                        lineNumber: 133,
+                        lineNumber: 216,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/components/Chatroom.tsx",
-                lineNumber: 125,
+                lineNumber: 213,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                className: "flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-gray-50",
+                className: "flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-gray-50",
                 children: [
                     messages.map((msg)=>{
-                        const isMe = msg.user_id === user.id // ✅ fixed: use user_id instead of nickname
-                        ;
+                        const isMe = msg.user_id === user.id;
+                        const messageReactions = getReactionsForMessage(msg.id);
+                        const repliedMessage = getReplyMessage(msg.reply_to);
                         return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                             className: `flex ${isMe ? 'justify-end' : 'justify-start'}`,
                             children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                className: `max-w-[75%] rounded-2xl px-4 py-2.5 shadow-sm ${isMe ? 'bg-blue-500 text-white rounded-br-md' : 'bg-white text-gray-800 rounded-bl-md'}`,
+                                className: "relative max-w-[75%] group",
                                 children: [
-                                    !isMe && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                                        className: "text-xs font-semibold mb-1 opacity-70",
-                                        children: msg.username
-                                    }, void 0, false, {
+                                    repliedMessage && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                        className: `mb-1 px-3 py-1.5 rounded-lg text-xs border-l-4 ${isMe ? 'bg-blue-500/20 border-blue-300 text-blue-100' : 'bg-gray-100 border-gray-400 text-gray-600'}`,
+                                        children: [
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                className: "font-semibold",
+                                                children: repliedMessage.username
+                                            }, void 0, false, {
+                                                fileName: "[project]/src/components/Chatroom.tsx",
+                                                lineNumber: 278,
+                                                columnNumber: 21
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                className: "truncate opacity-80",
+                                                children: repliedMessage.content
+                                            }, void 0, false, {
+                                                fileName: "[project]/src/components/Chatroom.tsx",
+                                                lineNumber: 279,
+                                                columnNumber: 21
+                                            }, this)
+                                        ]
+                                    }, void 0, true, {
                                         fileName: "[project]/src/components/Chatroom.tsx",
-                                        lineNumber: 193,
+                                        lineNumber: 271,
                                         columnNumber: 19
                                     }, this),
-                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                                        className: "text-sm leading-relaxed",
-                                        children: msg.content
-                                    }, void 0, false, {
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                        className: `rounded-2xl px-4 py-2.5 shadow-sm ${isMe ? 'bg-blue-600 text-white rounded-br-md' : 'bg-white text-gray-800 rounded-bl-md'}`,
+                                        children: [
+                                            !isMe && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                className: "text-xs font-semibold mb-1 opacity-70",
+                                                children: msg.username
+                                            }, void 0, false, {
+                                                fileName: "[project]/src/components/Chatroom.tsx",
+                                                lineNumber: 292,
+                                                columnNumber: 21
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                className: "text-sm leading-relaxed",
+                                                children: msg.content
+                                            }, void 0, false, {
+                                                fileName: "[project]/src/components/Chatroom.tsx",
+                                                lineNumber: 294,
+                                                columnNumber: 19
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                                className: `text-[11px] mt-1 ${isMe ? 'text-blue-100' : 'text-gray-400'}`,
+                                                children: new Date(msg.created_at).toLocaleTimeString([], {
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                })
+                                            }, void 0, false, {
+                                                fileName: "[project]/src/components/Chatroom.tsx",
+                                                lineNumber: 295,
+                                                columnNumber: 19
+                                            }, this)
+                                        ]
+                                    }, void 0, true, {
                                         fileName: "[project]/src/components/Chatroom.tsx",
-                                        lineNumber: 197,
+                                        lineNumber: 284,
                                         columnNumber: 17
                                     }, this),
-                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
-                                        className: `text-[11px] mt-1 ${isMe ? 'text-blue-100' : 'text-gray-400'}`,
-                                        children: new Date(msg.created_at).toLocaleTimeString([], {
-                                            hour: '2-digit',
-                                            minute: '2-digit'
-                                        })
+                                    Object.keys(messageReactions).length > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                        className: `flex flex-wrap gap-1 mt-1 ${isMe ? 'justify-end' : 'justify-start'}`,
+                                        children: Object.entries(messageReactions).map(([emoji, data])=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                onClick: ()=>toggleReaction(msg.id, emoji),
+                                                className: `text-xs px-1.5 py-0.5 rounded-full border ${data.reactedByMe ? 'bg-blue-100 border-blue-300' : 'bg-white border-gray-200'}`,
+                                                children: [
+                                                    emoji,
+                                                    " ",
+                                                    data.count
+                                                ]
+                                            }, emoji, true, {
+                                                fileName: "[project]/src/components/Chatroom.tsx",
+                                                lineNumber: 307,
+                                                columnNumber: 23
+                                            }, this))
                                     }, void 0, false, {
                                         fileName: "[project]/src/components/Chatroom.tsx",
-                                        lineNumber: 198,
+                                        lineNumber: 305,
+                                        columnNumber: 19
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                        className: `absolute -bottom-2 flex gap-1 opacity-0 group-hover:opacity-100 transition ${isMe ? 'left-0' : 'right-0'}`,
+                                        children: [
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                onClick: ()=>startReply(msg),
+                                                className: "text-md text-gray-500 bg-white rounded-full px-1.5 py-0.5 shadow-sm hover:bg-gray-50",
+                                                children: "↩"
+                                            }, void 0, false, {
+                                                fileName: "[project]/src/components/Chatroom.tsx",
+                                                lineNumber: 328,
+                                                columnNumber: 19
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                onClick: ()=>setActiveReactionMessage(activeReactionMessage === msg.id ? null : msg.id),
+                                                className: "text-md bg-white rounded-full px-1.5 py-0.5 shadow-sm hover:bg-gray-50",
+                                                children: "😊"
+                                            }, void 0, false, {
+                                                fileName: "[project]/src/components/Chatroom.tsx",
+                                                lineNumber: 334,
+                                                columnNumber: 19
+                                            }, this)
+                                        ]
+                                    }, void 0, true, {
+                                        fileName: "[project]/src/components/Chatroom.tsx",
+                                        lineNumber: 323,
                                         columnNumber: 17
+                                    }, this),
+                                    activeReactionMessage === msg.id && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                        className: `absolute bottom-8 bg-white border rounded-full shadow-lg px-2 py-1 flex gap-1 z-10 ${isMe ? 'right-0' : 'left-0'}`,
+                                        children: EMOJIS.map((emoji)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                onClick: ()=>toggleReaction(msg.id, emoji),
+                                                className: "hover:scale-125 transition text-lg",
+                                                children: emoji
+                                            }, emoji, false, {
+                                                fileName: "[project]/src/components/Chatroom.tsx",
+                                                lineNumber: 352,
+                                                columnNumber: 23
+                                            }, this))
+                                    }, void 0, false, {
+                                        fileName: "[project]/src/components/Chatroom.tsx",
+                                        lineNumber: 346,
+                                        columnNumber: 19
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/components/Chatroom.tsx",
-                                lineNumber: 185,
+                                lineNumber: 268,
                                 columnNumber: 15
                             }, this)
                         }, msg.id, false, {
                             fileName: "[project]/src/components/Chatroom.tsx",
-                            lineNumber: 181,
+                            lineNumber: 267,
                             columnNumber: 13
                         }, this);
                     }),
@@ -269,14 +444,67 @@ function ChatRoom({ user }) {
                         ref: bottomRef
                     }, void 0, false, {
                         fileName: "[project]/src/components/Chatroom.tsx",
-                        lineNumber: 212,
+                        lineNumber: 366,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/components/Chatroom.tsx",
-                lineNumber: 176,
+                lineNumber: 260,
                 columnNumber: 7
+            }, this),
+            replyingTo && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                className: "bg-gray-100 border-t px-4 py-2 flex items-center justify-between",
+                children: [
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        className: "text-sm",
+                        children: [
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                className: "text-xs text-gray-500",
+                                children: [
+                                    "Replying to ",
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                        className: "font-medium",
+                                        children: replyingTo.username
+                                    }, void 0, false, {
+                                        fileName: "[project]/src/components/Chatroom.tsx",
+                                        lineNumber: 373,
+                                        columnNumber: 62
+                                    }, this)
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/src/components/Chatroom.tsx",
+                                lineNumber: 373,
+                                columnNumber: 13
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                className: "text-gray-700 truncate max-w-xs",
+                                children: replyingTo.content
+                            }, void 0, false, {
+                                fileName: "[project]/src/components/Chatroom.tsx",
+                                lineNumber: 374,
+                                columnNumber: 13
+                            }, this)
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/src/components/Chatroom.tsx",
+                        lineNumber: 372,
+                        columnNumber: 11
+                    }, this),
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                        onClick: ()=>setReplyingTo(null),
+                        className: "text-gray-500 hover:text-gray-700 text-lg",
+                        children: "✕"
+                    }, void 0, false, {
+                        fileName: "[project]/src/components/Chatroom.tsx",
+                        lineNumber: 376,
+                        columnNumber: 11
+                    }, this)
+                ]
+            }, void 0, true, {
+                fileName: "[project]/src/components/Chatroom.tsx",
+                lineNumber: 371,
+                columnNumber: 9
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                 className: "bg-white border-t px-4 py-3",
@@ -285,14 +513,15 @@ function ChatRoom({ user }) {
                     className: "flex items-center gap-2",
                     children: [
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                            ref: inputRef,
                             type: "text",
                             value: input,
                             onChange: (e)=>setInput(e.target.value),
-                            placeholder: "Type a message...",
-                            className: "flex-1 border border-gray-300 rounded-full px-4 py-2.5 text-sm text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent"
+                            placeholder: replyingTo ? 'Write a reply...' : 'Type a message...',
+                            className: "flex-1 border border-gray-300 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         }, void 0, false, {
                             fileName: "[project]/src/components/Chatroom.tsx",
-                            lineNumber: 218,
+                            lineNumber: 388,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -302,24 +531,24 @@ function ChatRoom({ user }) {
                             children: "Send"
                         }, void 0, false, {
                             fileName: "[project]/src/components/Chatroom.tsx",
-                            lineNumber: 225,
+                            lineNumber: 396,
                             columnNumber: 11
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/src/components/Chatroom.tsx",
-                    lineNumber: 217,
+                    lineNumber: 387,
                     columnNumber: 9
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/src/components/Chatroom.tsx",
-                lineNumber: 216,
+                lineNumber: 386,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/src/components/Chatroom.tsx",
-        lineNumber: 123,
+        lineNumber: 211,
         columnNumber: 5
     }, this);
 }
